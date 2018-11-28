@@ -1,0 +1,33 @@
+---
+title: "data"
+author: "Sonya Kalara"
+date: "11/27/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(haven)
+library(fs)
+library(readxl)
+library(lubridate)
+library(kableExtra)
+library(janitor)
+library(leaflet)
+library(statesRcontiguous)
+library(sp)
+library(rgdal)
+library(raster)
+library(tidyverse)
+library(tigris)
+
+newYork <- counties("New York", cb = TRUE)
+```
+
+```{r}
+write_rds(newYork, "./FinalApp/newYork.rds") 
+```
+
+```{r}
+
+```
+

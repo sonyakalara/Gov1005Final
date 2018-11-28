@@ -23,10 +23,9 @@ library(tidyverse)
 library(moderndive)
 library(tigris)
 
-newYork <- counties("New York", cb = TRUE)
+newYork <- readRDS("newYork.rds")
 
 hateCrimes <- read_csv("Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
-
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -37,9 +36,10 @@ ui <- fluidPage(
 server <- function(input, output) {
    
   output$mymap <- renderLeaflet({
-    leaflet(tibbleShapes) %>%
+    leaflet(newYork) %>%
       addProviderTiles(provider = "CartoDB") %>% 
-      addPolygons()
+      addPolygons(layerId = newYork$NAME,
+                  popup = newYork$NAME)
   })
 }
 
