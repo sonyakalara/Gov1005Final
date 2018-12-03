@@ -23,11 +23,22 @@ library(tigris)
 newYork <- counties("New York", cb = TRUE)
 ```
 
-```{r}
+```{r echo = FALSE}
+
+  
 write_rds(newYork, "./FinalApp/newYork.rds") 
+hateCrimes <- read_csv("./FinalApp/Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
 ```
 
 ```{r}
+pop <- read_excel("population.xlsx")
+hateCrimes <- read_csv("Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
 
+dataset <- hateCrimes %>% 
+  left_join(pop) %>% 
+  mutate(ratio = `Total Incidents` * 10000 / Population) %>%
+  arrange(desc(ratio)) 
+
+hcrimes <- dataset %>% 
+  write_rds("./FinalApp/dataset.rds")
 ```
-

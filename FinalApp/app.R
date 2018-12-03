@@ -25,24 +25,83 @@ library(tigris)
 
 newYork <- readRDS("newYork.rds")
 
-hateCrimes <- read_csv("Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
+dataset <- readRDS("dataset.rds")
+
+merged <- readRDS("merged.rds")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-        leafletOutput("mymap", height = "350px")
-      )
+        leafletOutput("mymap", height = "350px"),
+        sidebarLayout(
+          sidebarPanel(
+            sliderInput("year", 
+                        "Observation Year:", 
+                        min = 2010, 
+                        max = 2016, 
+                        step = 1, 
+                        value = 2010,
+                        timeFormat = TRUE), 
+            radioButtons("type", 
+                         "Type of Crime", 
+                         choices = c("Property Crimes" = "Property Crimes", 
+                                     "Crimes Against Persons" = "Crimes Against Persons"), 
+                         selected = "Crimes Against Persons")
+          ), 
+          
+          mainPanel(
+            tableOutput("table")
+          )
+          
+        )
+        )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   
+  
+  pal <- colorNumeric(c("white", "red"), 0:1.15)
+  
+  filtered <- reactive({
+    dataset %>% 
+      filter(Year == input$year, 
+             `Crime Type` == input$type)
+    })
+    
+  shp <- reactive({
+    geo_join(newYork, filtered(), "NAME","County", how = "left")
+  })
+    
+  
+  
   output$mymap <- renderLeaflet({
-    leaflet(newYork) %>%
+    
+    # Creates new graph 
+    leaflet(shp()) %>%
       addProviderTiles(provider = "CartoDB") %>% 
-      addPolygons(layerId = newYork$NAME,
-                  popup = newYork$NAME)
+      addPolygons(layerId = ~NAME,
+                  fillOpacity = 0.7,
+                  color = "white",
+                  fillColor = ~pal(ratio), 
+                  dashArray = "3",
+                  popup = ~NAME)
+  })
+  
+  observeEvent(input$mymap_shape_click, {
+    if(is.null(click))
+      return()
+    
+    else
+    {
+      click <- input$mymap_shape_click
+      output$table <- renderTable({
+        table <- dataset %>% 
+          filter(Year == input$year, `Crime Type` == input$type) %>% 
+          filter(County == click$id) %>% 
+          select(ratio)
+        return(table)
+      })
+    }
   })
 }
-
 # Run the application 
 shinyApp(ui = ui, server = server)
 
