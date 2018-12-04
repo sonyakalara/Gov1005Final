@@ -27,33 +27,49 @@ newYork <- readRDS("newYork.rds")
 
 dataset <- readRDS("dataset.rds")
 
-merged <- readRDS("merged.rds")
-
-# Define UI for application that draws a histogram
 ui <- fluidPage(
-        leafletOutput("mymap", height = "350px"),
-        sidebarLayout(
-          sidebarPanel(
-            sliderInput("year", 
-                        "Observation Year:", 
-                        min = 2010, 
-                        max = 2016, 
-                        step = 1, 
-                        value = 2010,
-                        timeFormat = TRUE), 
-            radioButtons("type", 
-                         "Type of Crime", 
-                         choices = c("Property Crimes" = "Property Crimes", 
-                                     "Crimes Against Persons" = "Crimes Against Persons"), 
-                         selected = "Crimes Against Persons")
+        tabsetPanel(
+          tabPanel("Ratio",  
+            leafletOutput("mymap", height = "350px"),
+            sidebarLayout(
+              sidebarPanel(
+                sliderInput("year", 
+                            "Observation Year:", 
+                            min = 2010, 
+                            max = 2016, 
+                            step = 1, 
+                            value = 2010,
+                            timeFormat = TRUE), 
+                radioButtons("type", 
+                             "Type of Crime", 
+                             choices = c("Property Crimes" = "Property Crimes", 
+                                         "Crimes Against Persons" = "Crimes Against Persons"), 
+                             selected = "Crimes Against Persons")
+              ), 
+              mainPanel(
+                tableOutput("table")
+              )
+            )
           ), 
-          
-          mainPanel(
-            tableOutput("table")
+          tabPanel("Regressions", 
+            sidebarLayout(
+              sidebarPanel(
+                radioButtons("group", 
+                             "Discrimination Category",
+                             choices = c("Gender" = 1, 
+                                         "Race / Ethnicity" = 2,
+                                         "Religion" = 3, 
+                                         "Sexuality" = 4, 
+                                         "Age / Disability" = 5))
+                  
+                ), 
+              mainPanel(
+                h5("hello")
+              )
+              )
+            )
           )
-          
-        )
-        )
+          )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
@@ -70,15 +86,13 @@ server <- function(input, output) {
     geo_join(newYork, filtered(), "NAME","County", how = "left")
   })
     
-  
-  
   output$mymap <- renderLeaflet({
     
     # Creates new graph 
     leaflet(shp()) %>%
       addProviderTiles(provider = "CartoDB") %>% 
       addPolygons(layerId = ~NAME,
-                  fillOpacity = 0.7,
+                  fillOpacity = 0.9,
                   color = "white",
                   fillColor = ~pal(ratio), 
                   dashArray = "3",
@@ -94,9 +108,11 @@ server <- function(input, output) {
       click <- input$mymap_shape_click
       output$table <- renderTable({
         table <- dataset %>% 
-          filter(Year == input$year, `Crime Type` == input$type) %>% 
+          filter(`Crime Type` == input$type) %>% 
           filter(County == click$id) %>% 
-          select(ratio)
+          gather(key = discrimination, value = measurement,
+                 `Anti-Male`:`Anti-Mental Disability`)
+        
         return(table)
       })
     }
