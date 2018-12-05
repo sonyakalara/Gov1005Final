@@ -34,6 +34,23 @@ dataset <- readRDS("dataset.rds")
 # Defines user interface 
 ui <- fluidPage(
         tabsetPanel(
+          tabPanel("Summary", 
+                   uiOutput("image"), 
+                   h1("Hate Crimes in New York City 2010 - 2016"), 
+                   h3("Ratio - First Question"), 
+                   h5("The ratio tab seeks to figure out when sudden upticks
+                      in hate crime density occur in any given county by adjusting
+                      the number of hate crimes by the population."), 
+                   h3("Disaggregated - Second Question"), 
+                   h5("The disaggregated tab seeks to understand what trends
+                      exist for different categories of discrimination for any 
+                      given county."), 
+                   h3("Total - Third Question"),
+                   h5("The total tab seeks to explore how trends appear when
+                      the entirety of the state is examined rather than individual 
+                      counties. This tab divides the data into every specific kind of
+                      discrimination rather than pockets like in the disaggregated tab.") 
+                   ),
           tabPanel("Ratio",  
             leafletOutput("mymap", height = "350px"),
             sidebarLayout(
@@ -91,31 +108,53 @@ ui <- fluidPage(
               )
               )
             ), 
-          tabPanel("Total", 
-                   selectInput("all_types", "Discrimination Type", 
-                               choices = c("Anti-Male", "Anti-Female", "Anti-Transgender", 
-                                           "Anti-Gender Identity Expression", "Anti-White", 
-                                           "Anti-Black", "Anti-American Indian/Alaskan Native", 
-                                           "Anti-Asian", "Anti-Native Hawaiian/Pacific Islander", 
-                                           "Anti-Multi Racial Groups", "Anti-Other Race", 
-                                           "Anti-Hispanic", "Anti-Arab", "Anti-Other Ethnicity/National Origin",
-                                           "Anti-Non-Hispanic*", "Anti-Jewish", "Anti-Catholic", "Anti-Protestant", 
-                                           "Anti-Islamic (Muslim)", "Anti-Multi-Religious Groups",
-                                           "Anti-Atheism/Agnosticism", "Anti-Religious Practice Generally",
-                                           "Anti-Other Religion", "Anti-Buddhist", "Anti-Eastern Orthodox (Greek, Russian, etc.)", 
-                                           "Anti-Hindu", "Anti-Jehovahs Witness", "Anti-Mormon", 
-                                           "Anti-Other Christian", "Anti-Sikh", 
-                                           "Anti-Gay Male", "Anti-Gay Female", "Anti-Gay (Male and Female)", 
-                                           "Anti-Heterosexual", "Anti-Bisexual", "Anti-Mental Disability", 
-                                           "Anti-Physical Disability", "Anti-Age*") , 
-                   renderTable("totalGraphs")
+          tabPanel("Total",
+                   sidebarLayout(
+                     sidebarPanel(
+                       selectInput("all_types", "Discrimination Type", 
+                                   choices = c("Anti-Male", "Anti-Female", "Anti-Transgender", 
+                                               "Anti-Gender Identity Expression", "Anti-White", 
+                                               "Anti-Black", "Anti-American Indian/Alaskan Native", 
+                                               "Anti-Asian", "Anti-Native Hawaiian/Pacific Islander", 
+                                               "Anti-Multi-Racial Groups" , "Anti-Other Race", 
+                                               "Anti-Hispanic", "Anti-Arab", "Anti-Other Ethnicity/National Origin",
+                                               "Anti-Non-Hispanic*", "Anti-Jewish", "Anti-Catholic", "Anti-Protestant", 
+                                               "Anti-Islamic (Muslim)", "Anti-Multi-Religious Groups",
+                                               "Anti-Atheism/Agnosticism", "Anti-Religious Practice Generally",
+                                               "Anti-Other Religion", "Anti-Buddhist", "Anti-Eastern Orthodox (Greek, Russian, etc.)", 
+                                               "Anti-Hindu", "Anti-Jehovahs Witness", "Anti-Mormon", 
+                                               "Anti-Other Christian", "Anti-Sikh", 
+                                               "Anti-Gay Male", "Anti-Gay Female", "Anti-Gay (Male and Female)", 
+                                               "Anti-Heterosexual", "Anti-Bisexual", "Anti-Mental Disability", 
+                                               "Anti-Physical Disability", "Anti-Age*")), 
+                       h5("These graphs represent trends in hate crimes across the entirety of New York
+                          across time. ")
+                     ), 
+                    
+                  mainPanel(
+                    plotOutput("totalGraphs")
+                  )
+                  )             
             
+          ), 
+          tabPanel("Insights", 
+                   h1("Analytical Context"), 
+                   p("The biggest issue facing analysis of this dataset is that there are small counties
+                     and there are types of discrimination that are less common because the affected group is 
+                     a smaller share of the population. These two trends result in numbers that are not statistically
+                     significant because it is fallacious to make generalized claims about trends when there are very
+                     few instances to begin with and therefore very few data points associated with them. It is easier
+                     to discover trends in counties that are population drivers as well as types of hate crimes that are
+                     more common and therefore have more substantive variation in data.")
           )
           )
           )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
+  
+  output$image = renderUI({
+    tags$img(src = "https://static1.squarespace.com/static/5b10b6968ab722b1af17a9ca/t/5b2134d588251b936fa55067/1528902920603/HateCrimesBanner_1.png", width = "100%")})
   
   # Colorvariable for map that gets redder as ratio 
   # gets larger. 
@@ -230,7 +269,7 @@ server <- function(input, output) {
             data = c("Anti-Male", "Anti-Female", "Anti-Transgender", "Anti-Gender Identity Expression")
           else if (input$group == 2)
             data = c("Anti-White", "Anti-Black", "Anti-American Indian/Alaskan Native", 
-                     "Anti-Asian", "Anti-Native Hawaiian/Pacific Islander", "Anti-Multi Racial Groups", 
+                     "Anti-Asian", "Anti-Native Hawaiian/Pacific Islander", "Anti-Multi-Racial Groups", 
                      "Anti-Other Race", "Anti-Hispanic", "Anti-Arab", "Anti-Other Ethnicity/National Origin",
                      "Anti-Non-Hispanic*")
           else if (input$group == 3)
@@ -293,18 +332,29 @@ server <- function(input, output) {
           return(graph)
         })
         
-        output$totalGraphs <- renderPlot({
-          total <- dataset %>% 
-            gather(key = discrimination, 
-                   value = number,
-                   `Anti-Male`:`Anti-Mental Disability`) %>% 
-            group_by(discrimination, Year) %>% 
-            mutate(total = sum(number)) %>% 
-            select(discrimination, total, Year)
-        })
-        
       }
       })
+    
+    
+    output$totalGraphs <- renderPlot({
+      
+      total <- dataset %>%
+        gather(key = discrimination, 
+               value = number,
+               `Anti-Male`:`Anti-Mental Disability`) %>%
+        group_by(discrimination, Year) %>% 
+        mutate(total = sum(number)) %>% 
+        select(discrimination, total, Year) %>% 
+        unique() %>% 
+      filter(discrimination == input$all_types)
+      
+      trend <- ggplot(total, aes(x = Year, y = total)) +
+        geom_point() +
+        geom_line() +
+        geom_smooth(method = lm, se = TRUE)
+      
+      return(trend)
+    })
 
   
   
