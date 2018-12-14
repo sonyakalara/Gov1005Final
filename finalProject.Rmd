@@ -27,8 +27,8 @@ newYork <- counties("New York", cb = TRUE)
 
 ```{r echo = FALSE}
 write_rds(newYork, "./FinalApp/newYork.rds") 
-hateCrimes <- read_csv("./Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
-pop <- read_excel("population.xlsx")
+hateCrimes <- read_csv("./data/Hate_Crimes_by_County_and_Bias_Type__Beginning_2010.csv")
+pop <- read_excel("./data/population.xlsx")
 ```
 
 ```{r}
@@ -40,19 +40,3 @@ dataset <- hateCrimes %>%
 hcrimes <- dataset %>% 
   write_rds("./FinalApp/dataset.rds")
 ```
-```{r}
-table <- dataset %>% 
-  filter(`Crime Type` == "Crimes Against Persons") %>% 
-          filter(County == "New York") %>% 
-  gather(key = "measurement", value = "number", `Anti-Male`:`Anti-Mental Disability`) %>% 
-  arrange(desc(number)) %>% 
-  select(Year, measurement, number)
-
-plot <- ggplot(table, aes(x=Year, y=number)) + 
-  geom_line(aes(group=measurement)) + 
-  geom_point(aes(group=measurement)) +
-  geom_smooth(method = "lm", se = FALSE)
-
-table
-```
-
